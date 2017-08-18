@@ -30,12 +30,6 @@ class Converter:
 							unit_dict[name] = [];
 							unit_dict[name].append([(i, j), n]);
 
-		#self.width  = 800;
-		#self.height = 600;
-
-		#self.screen = pygame.display.set_mode((self.width, self.height), 0, 32);
-		#pygame.display.set_caption("worm");
-
 		json_dict = json.dumps(unit_dict);
 
 		print(json_dict);
@@ -44,63 +38,77 @@ class Converter:
 		wf.write(json_dict);
 		wf.close();
 
+	def to_center_axis_pos(self, img, x, y):
+		half_width  = img.get_width() / 2;
+		half_height = img.get_height() / 2;
+
+		new_x = x - half_width;
+		new_y = half_height - y;
+		#print("new_pos = (%s, %s)" % (new_x, new_y));
+		return (new_x, new_y);
+
 	def get_neighbour_pixel(self, img, x, y, pattern_clr):
+		#print("a0 = (%s, %s)" % (x, y));
+		a0 = self.to_center_axis_pos(img, x, y);
 		if x - 1 >= 0 and y - 1 >= 0:
 			cur_clr = img.get_at((x - 1, y - 1));
 			if cur_clr == pattern_clr:
-				return (-1, -1);
+				#print("a1 = (%s, %s)" % (x - 1, y - 1));
+				a1 = self.to_center_axis_pos(img, x - 1, y - 1);
+				return (a1[0] - a0[0], a1[1] - a0[1]);
 
 		if x - 1 >= 0 and y + 1 < img.get_height():
 			cur_clr = img.get_at((x - 1, y + 1));
 			if cur_clr == pattern_clr:
-				return (-1, 1);
+				#print("a1 = (%s, %s)" % (x - 1, y + 1));
+				a1 = self.to_center_axis_pos(img, x - 1, y + 1);
+				return (a1[0] - a0[0], a1[1] - a0[1]);
 
 		if x + 1 < img.get_width() and y - 1 >= 0:
 			cur_clr = img.get_at((x + 1, y - 1));
 			if cur_clr == pattern_clr:
-				return (1, -1);
+				#print("a1 = (%s, %s)" % (x + 1, y - 1));
+				a1 = self.to_center_axis_pos(img, x + 1, y - 1);
+				return (a1[0] - a0[0], a1[1] - a0[1]);
 
 		if x + 1 < img.get_width() and y + 1 < img.get_width():
 			cur_clr = img.get_at((x + 1, y + 1));
 			if cur_clr == pattern_clr:
-				return (1, 1);
+				#print("a1 = (%s, %s)" % (x + 1, y + 1));
+				a1 = self.to_center_axis_pos(img, x + 1, y + 1);
+				return (a1[0] - a0[0], a1[1] - a0[1]);
 
 		if x - 1 >= 0:
 			cur_clr = img.get_at((x - 1, y));
 			if cur_clr == pattern_clr:
-				return (-1, 0);
+				#print("a1 = (%s, %s)" % (x - 1, y));
+				a1 = self.to_center_axis_pos(img, x - 1, y);
+				return (a1[0] - a0[0], a1[1] - a0[1]);
 
 		if x + 1 < img.get_width():
 			cur_clr = img.get_at((x + 1, y));
 			if cur_clr == pattern_clr:
-				return (1, 0);
+				#print("a1 = (%s, %s)" % (x + 1, y));
+				a1 = self.to_center_axis_pos(img, x + 1, y);
+				return (a1[0] - a0[0], a1[1] - a0[1]);
 
 		if y - 1 >= 0:
 			cur_clr = img.get_at((x, y - 1));
 			if cur_clr == pattern_clr:
-				return (0, -1);
+				#print("a1 = (%s, %s)" % (x, y - 1));
+				a1 = self.to_center_axis_pos(img, x, y - 1);
+				return (a1[0] - a0[0], a1[1] - a0[1]);
 
 		if y + 1 < img.get_height():
 			cur_clr = img.get_at((x, y + 1));
 			if cur_clr == pattern_clr:
-				return (0, 1);
+				#print("a1 = (%s, %s)" % (x, y + 1));
+				a1 = self.to_center_axis_pos(img, x, y + 1);
+				return (a1[0] - a0[0], a1[1] - a0[1]);
 
 		print("failed");
 		return None;
 
-	def update_input_process(self):
-		for event in pygame.event.get():
-			if event.type == pygame.QUIT:
-				exit();
-
-	def update(self):
-		while True:
-			self.update_input_process();
-			self.screen.fill((0, 0, 0));
-			self.screen.blit(self.test_img, (0, 0));
-			pygame.display.update();
-
 if __name__ == "__main__":
 	converter = Converter("units");
-	#converter.update();
-	print("main");
+
