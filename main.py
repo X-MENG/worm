@@ -66,20 +66,22 @@ class WormUnit:
 		return root_to_leaf_unit_list;
 
 	def get_anchor_forward(self, anchor_index):
-		if self.parent_worm_unit == None:
-			anchor_info = self.anchors[anchor_index];
-			return anchor_info[1];
-		else:
-			root_to_leaf_unit_list = self.get_root_to_leaf_unit_list();
+		return self.active_anchors[anchor_index];
+		#if self.parent_worm_unit == None:
+			#anchor_info = self.anchors[anchor_index];
+		#	anchor_info = self.active_anchors[anchor_index];
+		#	return anchor_info[1];
+		#else:
+			#root_to_leaf_unit_list = self.get_root_to_leaf_unit_list();
 
-			cur_angle = 0;
-			for unit_info in root_to_leaf_unit_list:
-				cur_angle += unit_info.local_angle;
+			#cur_angle = 0;
+			#for unit_info in root_to_leaf_unit_list:
+			#	cur_angle += unit_info.local_angle;
 
-			anchor_info = self.anchors[anchor_index];
-			new_forward = self.get_rotate_forward(anchor_info[1], cur_angle);
+			#anchor_info = self.anchors[anchor_index];
+			#new_forward = self.get_rotate_forward(anchor_info[1], cur_angle);
 
-			return new_forward;
+			#return new_forward;
 
 	def vector2_add(self, v1, v2):
 		return [v1[0] + v2[0], v1[1] + v2[1]];		
@@ -163,7 +165,7 @@ class WormUnit:
 		self.reduce_free_anchor_count();
 
 	def random_get_free_anchor_index(self):
-		anchor_index_list = list(range(len(self.anchors)));
+		anchor_index_list = list(range(len(self.active_anchors)));
 
 		if self.to_parent_anchor_index != -1:
 			anchor_index_list.remove(self.to_parent_anchor_index);
@@ -264,6 +266,7 @@ class WormUnit:
 			render_pos = (self.worm.mid_pos[0] - w / 2, self.worm.mid_pos[1] - h / 2);
 			self.update_active_anchors(render_pos);
 		else:
+			print("to_parent_anchor_index = %d, parent_anchor_index = %d" % (self.to_parent_anchor_index, self.parent_anchor_index));
 			render_pos = self.get_render_pos_by_parent(self.to_parent_anchor_index, self.parent_anchor_index);
 			self.update_active_anchors(render_pos);
 
@@ -282,6 +285,8 @@ class Worm:
 		self.main = main;
 		self.root_unit = WormUnit(self, root_unit_img, root_unit_type);
 		self.mid_pos = mid_pos;
+		w, h = self.root_unit.unit_img.get_size();
+		self.root_unit.update_active_anchors((mid_pos[0] - w / 2, mid_pos[1] - h / 2));
 
 	def get_free_anchor_count(self):
 		return self.root_unit.get_free_anchor_count();
