@@ -223,6 +223,10 @@ class WormUnit:
 
 		self.parent_worm_unit.add_child(self.parent_anchor_index, self);
 
+		left_top_pos = self.get_left_top_pos_after_rotating_by_anchor_world_pos(self.to_parent_anchor_index, parent_worm_unit.active_anchors[parent_anchor_index][0]);
+		print("left_top_pos = %s" % str(left_top_pos));
+		self.update_active_anchors(left_top_pos);
+
 		return True;
 
 	def get_unit_by_step(self, step):
