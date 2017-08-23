@@ -18,6 +18,7 @@ class WormUnit:
 		self.parent_anchor_index = -1;
 		self.to_parent_anchor_index = -1;
 		self.local_angle = 0.0;
+		self.connect_pos = (0, 0);
 
 	def is_anchor_free(self, anchor_index):
 		if anchor_index in self.child_units.keys():
@@ -26,6 +27,7 @@ class WormUnit:
 		return True;
 
 	def get_left_top_pos_after_rotating_by_anchor_world_pos(self, anchor_index, world_pos):
+		#print("get_left_top_pos_after_rotating_by_anchor_world_pos");
 		w, h = self.unit_img.get_size();
 		pos = self.get_anchor_pos_after_rotating(w, h, anchor_index, self.local_angle);
 
@@ -35,6 +37,7 @@ class WormUnit:
 		return (px, py), pos;
 
 	def get_render_pos_by_parent(self, to_parent_anchor_index, parent_anchor_index):
+		#print("get_render_pos_by_parent");
 		parent_worm_unit = self.parent_worm_unit;
 		parent_active_anchor = parent_worm_unit.active_anchors[parent_anchor_index];
 		render_pos, anchor_pos = self.get_left_top_pos_after_rotating_by_anchor_world_pos(to_parent_anchor_index, parent_active_anchor[0])
@@ -169,26 +172,26 @@ class WormUnit:
 		return anchor_index_list[r];
 
 	def get_anchor_pos_after_rotating(self, w, h, anchor_index, deg_angle):
+		#print("get_anchor_pos_after_rotating");
 		deg_angle = -deg_angle;
-		print("get_anchor_pos_after_rotation");
-		print("deg_angle = %s" % str(deg_angle));
+		#print("deg_angle = %s" % str(deg_angle));
 		rad_angle = self.deg_to_rad(deg_angle);
 		new_h = new_w = w * abs(math.cos(rad_angle)) + w * abs(math.sin(rad_angle));
 
-		print("(new_w, new_h) = %s" % str((new_w, new_h)));
+		#print("(new_w, new_h) = %s" % str((new_w, new_h)));
 
 		num1 = -0.5 * w * math.cos(rad_angle) + 0.5 * h * math.sin(rad_angle) + 0.5 * new_w;
 		num2 = -0.5 * w * math.sin(rad_angle) - 0.5 * h * math.cos(rad_angle) + 0.5 * new_h;
 
 		pixel = self.anchors[anchor_index][0];
-		print("orogin pixel = %s" % str(pixel));
+		#print("orogin pixel = %s" % str(pixel));
+		new_pixel = [0, 0];
+		new_pixel[0] = int(pixel[0] * math.cos(rad_angle) - pixel[1] * math.sin(rad_angle) + num1);
+		new_pixel[1] = int(pixel[0] * math.sin(rad_angle) + pixel[1] * math.cos(rad_angle) + num2);
 
-		new_x = pixel[0] * math.cos(rad_angle) - pixel[1] * math.sin(rad_angle) + num1;
-		new_y = pixel[0] * math.sin(rad_angle) + pixel[1] * math.cos(rad_angle) + num2;
+		#print("(new_pixel = %s" % str(new_pixel));
 
-		print("(new_x, new_y) = %s" % str((new_x, new_y)));
-
-		return (int(new_x), int(new_y));
+		return new_pixel;
 
 	def get_vector_angle(self, v1, v2):
 		a_len = self.get_vector2_length(v1);
@@ -206,22 +209,30 @@ class WormUnit:
 		else:
 			return -angle;
 
+	def draw_point(self, x, y, color):
+		#self.worm.main.screen.set_at((x, y), color);
+		pygame.draw.rect(self.worm.main.screen, color, [x, y, 5, 5], 1);
+
 	def attach_to(self, parent_worm_unit, parent_anchor_index, anchor_index):
-		print("attach_to");
+		#print("attach_to");
 		if parent_worm_unit.is_anchor_free(parent_anchor_index) == False:
 			return False;
 
 		if self.is_anchor_free(anchor_index) == False:
 			return False;
-		print("parent_anchor_index = %s" % parent_anchor_index);
+
 		self.parent_anchor_forward = parent_worm_unit.get_anchor_forward(parent_anchor_index);
 		anchor_forward = self.get_anchor_forward(anchor_index);
 
+		#print("parent_anchor_index = %s" % str(parent_anchor_index));
+		#print("parent_anchor_forward = %s" % str(self.parent_anchor_forward));
+		#print("anchor_forward = %s" % str(anchor_forward));
+
 		anchor_target_forward = [-self.parent_anchor_forward[0], -self.parent_anchor_forward[1]];
 
-		self.local_angle = parent_worm_unit.local_angle + self.get_vector_angle(anchor_forward, anchor_target_forward);
+		self.local_angle = self.get_vector_angle(anchor_forward, anchor_target_forward);
 
-		print("local_angle = %s" % self.local_angle);
+		#print("local_angle = %s" % self.local_angle);
 
 		self.parent_worm_unit = parent_worm_unit;
 		self.parent_anchor_index = parent_anchor_index;
@@ -231,8 +242,10 @@ class WormUnit:
 
 		self.parent_worm_unit.add_child(self.parent_anchor_index, self);
 
-		left_top_pos, anchor_pos = self.get_left_top_pos_after_rotating_by_anchor_world_pos(self.to_parent_anchor_index, parent_worm_unit.active_anchors[parent_anchor_index][0]);
+		#print("connect_pos = %s" % str(parent_worm_unit.active_anchors[parent_anchor_index][0]));
 
+		left_top_pos, anchor_pos = self.get_left_top_pos_after_rotating_by_anchor_world_pos(self.to_parent_anchor_index, parent_worm_unit.active_anchors[parent_anchor_index][0]);
+		self.connect_pos = anchor_pos;
 		self.update_active_anchors(left_top_pos);
 
 		return True;
@@ -251,18 +264,33 @@ class WormUnit:
 		return None;
 
 	def update_active_anchors(self, left_top_pos):
+		#print("update_active_anchors");
 		self.active_anchors = [];
-		print("left_top_pos = %s" % str(left_top_pos));
-		print("angle = %s" % str(self.local_angle));
+		#print("left_top_pos = %s" % str(left_top_pos));
+		#print("angle = %s" % str(self.local_angle));
+		w, h = self.unit_img.get_size();
+
+		anchor_index = 0;
 		for anchor in self.anchors:
-			print("anchor = %s" % str(anchor[0]));
-			x = left_top_pos[0] + anchor[0][0];
-			y = left_top_pos[1] + anchor[0][1];
-			normal = self.get_rotate_forward(anchor[1], self.local_angle);
-			print("(x, y) = %s" % str((x, y)));
-			print("normal = %s" % str(normal));
+			#print("anchor = %s" % str(anchor[0]));
+			rotated_anchor_pos = self.get_anchor_pos_after_rotating(w, h, anchor_index, self.local_angle);
+			#x = left_top_pos[0] + anchor[0][0];
+			#y = left_top_pos[1] + anchor[0][1];
+			x = left_top_pos[0] + rotated_anchor_pos[0];
+			y = left_top_pos[1] + rotated_anchor_pos[1];
+			normal = self.get_rotate_forward(anchor[1], -self.local_angle);
+			#print("(x, y) = %s" % str((x, y)));
+			#print("normal = %s" % str(normal));
 
 			self.active_anchors.append([[x, y], normal]);
+			anchor_index += 1;
+
+	def draw_active_anchors(self):
+		for anchor_info in self.active_anchors:
+			x = int(anchor_info[0][0]);
+			y = int(anchor_info[0][1]);
+			#print("active_anchor = %s" % str((x, y)));
+			self.draw_point(x, y, [255, 0, 0, 255]);
 
 	def update(self):
 		#print("--worm unit update--");
@@ -282,8 +310,10 @@ class WormUnit:
 		#print("(px, py) = %s" % str((px, py)));
 
 		unit_img = pygame.transform.rotate(self.unit_img, self.local_angle);
-		unit_img.set_at((int(anchor_pos[0]), int(anchor_pos[1])), (255, 0, 0, 255));
+		#unit_img.set_at((int(self.connect_pos[0]), int(self.connect_pos[1])), (255, 0, 0, 255));
 		self.worm.main.screen.blit(unit_img, render_pos);
+
+		self.draw_active_anchors();
 
 		for child_unit in self.child_units.values():
 			#print("update child_unit");
@@ -295,20 +325,21 @@ class Worm:
 		self.root_unit = WormUnit(self, root_unit_img, root_unit_type);
 		self.mid_pos = mid_pos;
 		w, h = self.root_unit.unit_img.get_size();
-		print("update root anchors");
+		#print("update root anchors");
 		self.root_unit.update_active_anchors((mid_pos[0] - w / 2, mid_pos[1] - h / 2));
 
 	def get_free_anchor_count(self):
 		return self.root_unit.get_free_anchor_count();
 
 	def random_attach_child(self, child_worm_unit, child_anchor_index):
+		#print("random_attach_child");
 		free_anchor_count = self.get_free_anchor_count();
 		r = random.randint(1, free_anchor_count);
 		r = 1;
 		worm_unit, _ = self.root_unit.get_unit_by_step(r);
 		parent_anchor_index = worm_unit.random_get_free_anchor_index();
-		print("parent_anchor_index = %s" % parent_anchor_index);
-		print("child_anchor_index = %s" % child_anchor_index);
+		#print("parent_anchor_index = %s" % parent_anchor_index);
+		#print("child_anchor_index = %s" % child_anchor_index);
 		child_worm_unit.attach_to(worm_unit, parent_anchor_index, child_anchor_index);
 
 	def update(self):
