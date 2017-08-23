@@ -18,7 +18,10 @@ class WormUnit:
 		self.parent_anchor_index = -1;
 		self.to_parent_anchor_index = -1;
 		self.local_angle = 0.0;
-		
+		self.max_normal_bias = 5.0;
+		self.cur_normal_bias = 0.0;
+		self.normal_bias_time = 0.5;
+		self.accum_normal_bias_time = 0.0;
 
 	def is_anchor_free(self, anchor_index):
 		if anchor_index in self.child_units.keys():
@@ -179,7 +182,7 @@ class WormUnit:
 		for k in self.child_units.keys():
 			anchor_index_list.remove(k);
 
-		print("anchor index list len = %s" % len(anchor_index_list));
+		#print("anchor index list len = %s" % len(anchor_index_list));
 		r = random.randint(0, len(anchor_index_list) - 1);
 		return anchor_index_list[r];
 
@@ -206,7 +209,7 @@ class WormUnit:
 		return new_pixel;
 
 	def get_vector_angle(self, v1, v2):
-		print("get_vector_angle");
+		#print("get_vector_angle");
 		a_len = self.get_vector2_length(v1);
 		b_len = self.get_vector2_length(v2);
 		c = self.vector2_sub(v1, v2);
@@ -214,8 +217,8 @@ class WormUnit:
 
 		rad_angle = math.acos((a_len ** 2 + b_len ** 2 - c_len ** 2) / (2 * a_len * b_len));
 		angle = self.rad_to_deg(rad_angle);
-		print("v1 = %s" % v1);
-		print("v2 = %s" % v2);
+		#print("v1 = %s" % v1);
+		#print("v2 = %s" % v2);
 
 		n = self.vector2_cross_product(v1, v2);
 
@@ -245,12 +248,12 @@ class WormUnit:
 
 		anchor_target_forward = [-self.parent_anchor_forward[0], -self.parent_anchor_forward[1]];
 
-		print("anchor_forward = %s" % str(anchor_forward));
-		print("anchor_target_forward = %s" % str(anchor_target_forward));
+		#print("anchor_forward = %s" % str(anchor_forward));
+		#print("anchor_target_forward = %s" % str(anchor_target_forward));
 
 		n = int(self.vector2_dot_product(anchor_forward, anchor_target_forward));
 
-		print("n = %s" % n);
+		#print("n = %s" % n);
 
 		if n == 1:
 			self.local_angle = 0.0;
@@ -295,6 +298,10 @@ class WormUnit:
 			self.active_anchors.append([[x, y], normal]);
 			anchor_index += 1;
 
+	def update_normal_bias(self):
+		t = pygame.time.Clock().get_time();
+		print("t = %s" % str(t));
+
 	def draw_active_anchors(self):
 		for anchor_info in self.active_anchors:
 			x = int(anchor_info[0][0]);
@@ -304,6 +311,8 @@ class WormUnit:
 
 	def update(self):
 		#print("--worm unit update--");
+
+		self.update_normal_bias();
 
 		render_pos = (0, 0);
 		anchor_pos = (0, 0);
@@ -337,9 +346,9 @@ class Worm:
 
 	def random_get_free_anchors_unit(self):
 		max_free_anchors_unit_count = self.get_free_anchors_unit_count();
-		print("max_free_anchors_unit_count = %s" % max_free_anchors_unit_count);
+		#print("max_free_anchors_unit_count = %s" % max_free_anchors_unit_count);
 		step_count = random.randint(1, max_free_anchors_unit_count);
-		print("r = %s" % str(step_count));
+		#print("r = %s" % str(step_count));
 
 		unit_stack = [];
 		unit_stack.append(self.root_unit);
@@ -384,16 +393,16 @@ class Worm:
 		return free_anchors_unit_count;
 
 	def random_attach_child(self, child_worm_unit, child_anchor_index):
-		print("random_attach_child");
+		#print("random_attach_child");
 
-		print("random_get_free_anchors_unit");
+		#print("random_get_free_anchors_unit");
 		worm_unit = self.random_get_free_anchors_unit();
 
-		print("random_get_free_anchor_index");
+		#print("random_get_free_anchor_index");
 		parent_anchor_index = worm_unit.random_get_free_anchor_index();
 		#parent_anchor_index = 0;
-		print("parent_anchor_index = %s" % parent_anchor_index);
-		print("child_anchor_index = %s" % child_anchor_index);
+		#print("parent_anchor_index = %s" % parent_anchor_index);
+		#Sprint("child_anchor_index = %s" % child_anchor_index);
 
 		child_worm_unit.attach_to(worm_unit, parent_anchor_index, child_anchor_index);
 
@@ -405,7 +414,8 @@ class Main:
 	def __init__(self):
 		self.width = 800;
 		self.height = 600;
-
+		self.clock = pygame.time.Clock();
+		self.frame_time = 0.0;
 		with open("config/unit_config.json") as f:
 			self.unit_config = json.load(f);
 
@@ -424,15 +434,17 @@ class Main:
 					key_box = ["circle.png", "triangle.png", "triangle.png"];
 					r = random.randint(0, 2);
 					key = key_box[r];
-					print("r = %s" + str(r));
+					#print("r = %s" + str(r));
 					worm_unit = WormUnit(self.worm, "units/" + key, key);
 					unit_slot = random.randint(0, len(self.unit_config[key]) - 1);
-					#unit_slot = 2;
-					print("unit_slot = %s" % str(unit_slot));
+					#unit_sloSt = 2;
+					#print("unit_slot = %s" % str(unit_slot));
 					self.worm.random_attach_child(worm_unit, unit_slot);
 
 	def update(self):
 		while True:
+			self.frame_time = self.clock.tick() / 1000.0;
+			#print("frame_time = %s" % str(self.frame_time));
 			self.update_input_process();
 			self.screen.fill((0, 0, 0));
 
