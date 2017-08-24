@@ -20,8 +20,10 @@ class WormUnit:
 		self.local_angle = 0.0;
 		self.max_normal_bias = 5.0;
 		self.cur_normal_bias = 0.0;
-		self.normal_bias_time = 0.5;
+		self.normal_bias_time = 1;
 		self.accum_normal_bias_time = 0.0;
+		self.normal_wave_speed = self.max_normal_bias / self.normal_bias_time;
+		self.normal_wave_dir = 1;
 
 	def is_anchor_free(self, anchor_index):
 		if anchor_index in self.child_units.keys():
@@ -37,15 +39,15 @@ class WormUnit:
 		px = world_pos[0] - pos[0];
 		py = world_pos[1] - pos[1];
 
-		return (px, py), pos;
+		return (px, py);
 
 	def get_render_pos_by_parent(self, to_parent_anchor_index, parent_anchor_index):
 		#print("get_render_pos_by_parent");
 		parent_worm_unit = self.parent_worm_unit;
 		parent_active_anchor = parent_worm_unit.active_anchors[parent_anchor_index];
-		render_pos, anchor_pos = self.get_left_top_pos_after_rotating_by_anchor_world_pos(to_parent_anchor_index, parent_active_anchor[0])
+		render_pos = self.get_left_top_pos_after_rotating_by_anchor_world_pos(to_parent_anchor_index, parent_active_anchor[0])
 		
-		return render_pos, anchor_pos;
+		return render_pos;
 
 	def get_root_to_leaf_connection_list(self):
 		root_to_leaf_connection_list = [];
@@ -272,7 +274,7 @@ class WormUnit:
 
 		self.parent_worm_unit.add_child(self.parent_anchor_index, self);
 
-		left_top_pos, anchor_pos = self.get_left_top_pos_after_rotating_by_anchor_world_pos(self.to_parent_anchor_index, parent_worm_unit.active_anchors[parent_anchor_index][0]);
+		left_top_pos = self.get_left_top_pos_after_rotating_by_anchor_world_pos(self.to_parent_anchor_index, parent_worm_unit.active_anchors[parent_anchor_index][0]);
 		
 		self.update_active_anchors(left_top_pos);
 
@@ -285,13 +287,14 @@ class WormUnit:
 		w, h = self.unit_img.get_size();
 
 		anchor_index = 0;
+		#print("cur_normal_bias = %s" % str(self.cur_normal_bias));
 		for anchor in self.anchors:
 			#print("anchor = %s" % str(anchor[0]));
 			rotated_anchor_pos = self.get_anchor_pos_after_rotating(w, h, anchor_index, self.local_angle);
 
 			x = left_top_pos[0] + rotated_anchor_pos[0];
 			y = left_top_pos[1] + rotated_anchor_pos[1];
-			normal = self.get_rotate_forward(anchor[1], -self.local_angle);
+			normal = self.get_rotate_forward(anchor[1], -self.local_angle - self.cur_normal_bias);
 			#print("(x, y) = %s" % str((x, y)));
 			#print("normal = %s" % str(normal));
 
@@ -299,8 +302,11 @@ class WormUnit:
 			anchor_index += 1;
 
 	def update_normal_bias(self):
-		t = pygame.time.Clock().get_time();
-		print("t = %s" % str(t));
+		#self.accum_normal_bias_time += self.worm.main.delta_time;
+		delta_step = self.normal_wave_speed * self.worm.main.delta_time * self.normal_wave_dir;
+		self.cur_normal_bias += delta_step;
+		if self.cur_normal_bias >= self.max_normal_bias or self.cur_normal_bias <= -self.max_normal_bias:
+			self.normal_wave_dir *= -1;
 
 	def draw_active_anchors(self):
 		for anchor_info in self.active_anchors:
@@ -315,15 +321,17 @@ class WormUnit:
 		self.update_normal_bias();
 
 		render_pos = (0, 0);
-		anchor_pos = (0, 0);
+
 		if self.parent_worm_unit == None:
 			#print("self.parent_worm_unit == None");
 			w, h = self.unit_img.get_size();
 			render_pos = (self.worm.mid_pos[0] - w / 2, self.worm.mid_pos[1] - h / 2);
 		else:
-			render_pos, anchor_pos = self.get_render_pos_by_parent(self.to_parent_anchor_index, self.parent_anchor_index);
+			render_pos = self.get_render_pos_by_parent(self.to_parent_anchor_index, self.parent_anchor_index);
 
 		#print("(px, py) = %s" % str((px, py)));
+
+		self.update_active_anchors(render_pos);
 
 		unit_img = pygame.transform.rotate(self.unit_img, self.local_angle);
 		
@@ -415,7 +423,7 @@ class Main:
 		self.width = 800;
 		self.height = 600;
 		self.clock = pygame.time.Clock();
-		self.frame_time = 0.0;
+		self.delta_time = 0.0;
 		with open("config/unit_config.json") as f:
 			self.unit_config = json.load(f);
 
@@ -443,7 +451,7 @@ class Main:
 
 	def update(self):
 		while True:
-			self.frame_time = self.clock.tick() / 1000.0;
+			self.delta_time = self.clock.tick() / 1000.0;
 			#print("frame_time = %s" % str(self.frame_time));
 			self.update_input_process();
 			self.screen.fill((0, 0, 0));
