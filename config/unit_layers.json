@@ -1,0 +1,31 @@
+{
+    "ii": [
+        {
+            "range": [0, 0],
+            "pattern": 
+            {
+                "mm_base": [0]
+            }
+        },
+        {
+            "range": [0, 2],
+            "pattern": 
+            {
+                "hand_1_base": [0]
+            }
+        },
+        {
+            "range": [0, 2],
+            "pattern": 
+            {
+                "hand_2_base": [0]
+            }
+        },
+        {
+            "range": [0, 2],
+            "pattern": {
+                "hand_3_base": [0]
+            }
+        }
+    ]
+}

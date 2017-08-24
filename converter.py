@@ -16,9 +16,9 @@ class Converter:
 			print("mask_name = " + p);
 
 			cur_img = pygame.image.load(p);
-
-			for j in range(0, 128):
-				for i in range(0, 128):
+			w, h = cur_img.get_size();
+			for j in range(0, h):
+				for i in range(0, w):
 					clr = cur_img.get_at((i, j));				
 					if clr == (255, 0, 0, 255):
 						#print("anchor: (%s, %s)" % (i, j));
@@ -110,5 +110,5 @@ class Converter:
 		return None;
 
 if __name__ == "__main__":
-	converter = Converter("units");
+	converter = Converter("units/ii");
 

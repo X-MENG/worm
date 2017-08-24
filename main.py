@@ -18,9 +18,9 @@ class WormUnit:
 		self.parent_anchor_index = -1;
 		self.to_parent_anchor_index = -1;
 		self.local_angle = 0.0;
-		self.max_normal_bias = 3.0;
+		self.max_normal_bias = 45.0;
 		self.cur_normal_bias = 0.0;
-		self.normal_bias_time = 1;
+		self.normal_bias_time = 2;
 		self.normal_wave_speed = self.max_normal_bias / self.normal_bias_time;
 		self.normal_wave_dir = 1;
 
@@ -375,6 +375,11 @@ class Worm:
 		#print("update root anchors");
 		self.root_unit.update_active_anchors((mid_pos[0] - w / 2, mid_pos[1] - h / 2));
 
+		self.layer_info = [];
+
+		for a in self.root_unit.anchors:
+			self.layer_info.append([0, 0, None, 0]);
+
 	def random_get_free_anchors_unit(self):
 		max_free_anchors_unit_count = self.get_free_anchors_unit_count();
 		#print("max_free_anchors_unit_count = %s" % max_free_anchors_unit_count);
@@ -403,6 +408,87 @@ class Worm:
 
 		return sel_unit;
 
+	def update_max_layer(self, layer_info):
+		layer_cfg_list = self.main.unit_layers["ii"];
+
+		cur_layer_cfg_index = layer_info[3];
+
+		if cur_layer_cfg_index + 1 >= len(layer_cfg_list):
+			return False;
+
+		cur_layer_cfg_index += 1;
+		layer_info[3] = cur_layer_cfg_index;
+
+		cur_layer = layer_info[0];
+		layer_cfg = layer_cfg_list[cur_layer_cfg_index];
+
+		layer_range = layer_cfg["range"];
+
+		min_layer = cur_layer + layer_range[0];
+		max_layer = cur_layer + layer_range[1];
+
+		limit_layer = random.randint(min_layer, max_layer);
+		layer_info[1] = limit_layer;
+		layer_info[2] = layer_cfg["pattern"];
+
+		return True;
+
+	def get_anchor_layer_info(self, worm_unit):
+		cur_unit = worm_unit;
+		while cur_unit.parent_worm_unit.parent_worm_unit != None:
+			cur_unit = cur_unit.parent_worm_unit;
+
+		cur_layer_info = self.layer_info[cur_unit.parent_anchor_index];
+
+		return cur_layer_info;
+
+
+	def growing(self):
+		worm_unit = self.random_get_free_anchors_unit();
+
+		if worm_unit.parent_worm_unit == None:
+			cur_anchor_index = worm_unit.random_get_free_anchor_index();
+
+			cur_layer_info = self.layer_info[cur_anchor_index];
+			cur_layer_info[0] += 1;
+
+			if cur_layer_info[0] > cur_layer_info[1]:
+				flag = self.update_max_layer(cur_layer_info);
+				if flag == False:
+					return;
+
+			pattern_key_list = cur_layer_info[2].keys();
+
+			pkl = [];
+			for kk in pattern_key_list:
+				pkl.append(kk);
+
+			cur_key = pkl[0];
+			k = "ii_" + cur_key + "_" + str(cur_layer_info[2][cur_key][0]) + ".png";
+			child_worm_unit = WormUnit(self, "units/ii/" + k, k);
+			child_worm_unit.attach_to(worm_unit, cur_anchor_index, 0);
+		else:
+			cur_layer_info = self.get_anchor_layer_info(worm_unit);
+			cur_layer_info[0] += 1;
+
+			if cur_layer_info[0] > cur_layer_info[1]:
+				flag = self.update_max_layer(cur_layer_info);
+				if flag == False:
+					return;
+
+			pattern_key_list = cur_layer_info[2].keys();
+
+			pkl = [];
+			for kk in pattern_key_list:
+				pkl.append(kk);
+
+			cur_key = pkl[0];
+			k = "ii_" + cur_key + "_" + str(cur_layer_info[2][cur_key][0]) + ".png";
+			child_worm_unit = WormUnit(self, "units/ii/" + k, k);
+
+			cur_anchor_index = worm_unit.random_get_free_anchor_index();
+
+			child_worm_unit.attach_to(worm_unit, cur_anchor_index, 0);
 
 	def get_free_anchors_unit_count(self):
 		unit_stack = [];
@@ -443,18 +529,21 @@ class Worm:
 
 class Main:
 	def __init__(self):
-		self.width = 800;
-		self.height = 600;
+		self.width = 1440;
+		self.height = 960;
 		self.clock = pygame.time.Clock();
 		self.delta_time = 0.0;
 		with open("config/unit_config.json") as f:
 			self.unit_config = json.load(f);
+		with open("config/unit_layers.json") as ff:
+			self.unit_layers = json.load(ff);
 
 		self.screen = pygame.display.set_mode((self.width, self.height), 0, 32);
 		pygame.display.set_caption("worm");
 
-		worm_mid_pos = (self.width / 2, self.height / 2);
-		self.worm = Worm(self, "units/diamond.png", "diamond.png", worm_mid_pos);
+		worm_mid_pos = (self.width / 2, self.height / 2 - 200);
+		#self.worm = Worm(self, "units/ii/ii_head_0.png", "ii_head_0.png", worm_mid_pos);
+		self.worm = Worm(self, "units/ii/ii_mm_base_0.png", "ii_mm_base_0.png", worm_mid_pos);
 
 	def update_input_process(self):
 		for event in pygame.event.get():
@@ -462,22 +551,22 @@ class Main:
 				exit();
 			elif event.type == pygame.KEYDOWN:
 				if event.key == pygame.K_SPACE:
-					key_box = ["circle.png", "triangle.png", "triangle.png"];
-					r = random.randint(0, 2);
-					key = key_box[r];
+					self.worm.growing();
+					#key_box = ["ii_hand_1_base_0.png", "ii_hand_2_base_0.png", "ii_hand_3_base_0.png"];
+					#r = random.randint(0, 2);
+					#key = key_box[r];
 					#print("r = %s" + str(r));
-					worm_unit = WormUnit(self.worm, "units/" + key, key);
-					unit_slot = random.randint(0, len(self.unit_config[key]) - 1);
-					unit_slot = 0;
+					#worm_unit = WormUnit(self.worm, "units/ii/" + key, key);
+					#unit_slot = random.randint(0, len(self.unit_config[key]) - 1);
 					#print("unit_slot = %s" % str(unit_slot));
-					self.worm.random_attach_child(worm_unit, unit_slot);
+					#self.worm.random_attach_child(worm_unit, unit_slot);
 
 	def update(self):
 		while True:
 			self.delta_time = self.clock.tick() / 1000.0;
 			#print("frame_time = %s" % str(self.frame_time));
 			self.update_input_process();
-			self.screen.fill((0, 0, 0));
+			self.screen.fill((86, 86, 86));
 
 			self.worm.update();
 
