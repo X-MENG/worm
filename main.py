@@ -382,6 +382,10 @@ class Worm:
 
 	def random_get_free_anchors_unit(self):
 		max_free_anchors_unit_count = self.get_free_anchors_unit_count();
+
+		if max_free_anchors_unit_count == 0:
+			return None;
+
 		#print("max_free_anchors_unit_count = %s" % max_free_anchors_unit_count);
 		step_count = random.randint(1, max_free_anchors_unit_count);
 		#print("r = %s" % str(step_count));
@@ -445,6 +449,9 @@ class Worm:
 
 	def growing(self):
 		worm_unit = self.random_get_free_anchors_unit();
+
+		if worm_unit == None:
+			return;
 
 		if worm_unit.parent_worm_unit == None:
 			cur_anchor_index = worm_unit.random_get_free_anchor_index();
