@@ -5,30 +5,44 @@ from glob import glob
 
 class Converter:
 	def __init__(self, unit_root):
-		self.unit_list = glob(unit_root + "/" + "*.png");
+
+		#self.unit_list = glob(unit_root + "/" + "*.png");
+		dir_list = [];
+		files = os.listdir(unit_root);
+
+		for f in files:
+			p = unit_root + "/" + f;
+			if(os.path.isdir(p)):
+				if(f[0] == '.'):
+					pass
+				else:
+					dir_list.append(p);
 
 		unit_dict = {};
 
-		for unit_name in self.unit_list:
-			name = unit_name.split("\\")[1];
-			print("name = " + unit_name);
-			p = unit_root + "/" + "mask" + "/" + "mask_" + name;
-			print("mask_name = " + p);
+		for root_dir in dir_list:
+			self.unit_list = glob(root_dir + "/" + "*.png");
 
-			cur_img = pygame.image.load(p);
-			w, h = cur_img.get_size();
-			for j in range(0, h):
-				for i in range(0, w):
-					clr = cur_img.get_at((i, j));				
-					if clr == (255, 0, 0, 255):
-						#print("anchor: (%s, %s)" % (i, j));
-						n = self.get_neighbour_pixel(cur_img, i, j, (0, 255, 0, 255));
-						print("cur name = " + name);
-						if name in unit_dict.keys():
-							unit_dict[name].append([(i, j), n]);
-						else:
-							unit_dict[name] = [];
-							unit_dict[name].append([(i, j), n]);
+			for unit_name in self.unit_list:
+				name = unit_name.split("\\")[1];
+				print("name = " + unit_name);
+				p = root_dir + "/" + "mask" + "/" + "mask_" + name;
+				print("mask_name = " + p);
+
+				cur_img = pygame.image.load(p);
+				w, h = cur_img.get_size();
+				for j in range(0, h):
+					for i in range(0, w):
+						clr = cur_img.get_at((i, j));				
+						if clr == (255, 0, 0, 255):
+							#print("anchor: (%s, %s)" % (i, j));
+							n = self.get_neighbour_pixel(cur_img, i, j, (0, 255, 0, 255));
+							print("cur name = " + name);
+							if name in unit_dict.keys():
+								unit_dict[name].append([(i, j), n]);
+							else:
+								unit_dict[name] = [];
+								unit_dict[name].append([(i, j), n]);
 
 		json_dict = json.dumps(unit_dict);
 
@@ -110,5 +124,5 @@ class Converter:
 		return None;
 
 if __name__ == "__main__":
-	converter = Converter("units/ii");
+	converter = Converter("units");
 
