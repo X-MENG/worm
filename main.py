@@ -18,11 +18,40 @@ class WormUnit:
 		self.parent_anchor_index = -1;
 		self.to_parent_anchor_index = -1;
 		self.local_angle = 0.0;
-		self.max_normal_bias = 45.0;
+		self.max_normal_bias = random.randint(20, 30);
+
 		self.cur_normal_bias = 0.0;
-		self.normal_bias_time = 2;
+		self.normal_bias_time = random.uniform(0.5, 2);
+
 		self.normal_wave_speed = self.max_normal_bias / self.normal_bias_time;
 		self.normal_wave_dir = 1;
+
+		self.min_scale = 1.0;
+		self.max_scale = 1.1;
+		self.cur_scale = self.min_scale;
+		self.scale_time = 1.0;
+		self.scale_accum_time = 0.0;
+		self.scale_speed = (self.max_scale - self.min_scale) / self.scale_time;
+		self.scale_dir = 1;
+
+		w, h = self.unit_img.get_size();
+		self.init_width = w;
+		self.init_height = h;
+
+		self.unit_layer_cfg_index = 0;
+		self.unit_layer_index = 0;
+
+	def update_unit_scale(self):
+		delta_step = self.scale_speed * self.worm.main.delta_time * self.scale_dir;
+		self.cur_scale += delta_step;
+		if self.cur_scale >= self.max_scale:
+			self.cur_scale = self.max_scale;
+			self.scale_dir *= -1;
+		elif self.cur_scale <= self.min_scale:
+			self.cur_scale = self.min_scale;
+			self.scale_dir *= -1;
+
+		return self.cur_scale;
 
 	def is_anchor_free(self, anchor_index):
 		if anchor_index in self.child_units.keys():
@@ -33,7 +62,7 @@ class WormUnit:
 	def get_left_top_pos_after_rotating_by_anchor_world_pos(self, anchor_index, world_pos):
 		#print("get_left_top_pos_after_rotating_by_anchor_world_pos");
 		w, h = self.unit_img.get_size();
-		pos = self.get_anchor_pos_after_rotating(w, h, anchor_index, self.local_angle);
+		pos = self.get_anchor_pos_after_rotating(w * self.cur_scale, h * self.cur_scale, anchor_index, self.local_angle);
 
 		px = world_pos[0] - pos[0];
 		py = world_pos[1] - pos[1];
@@ -180,6 +209,7 @@ class WormUnit:
 		return anchor_index_list[r];
 
 	def get_anchor_pos_after_rotating(self, w, h, anchor_index, deg_angle):
+
 		#print("get_anchor_pos_after_rotating");
 		deg_angle = -deg_angle;
 		#print("deg_angle = %s" % str(deg_angle));
@@ -191,8 +221,13 @@ class WormUnit:
 		num1 = -0.5 * w * math.cos(rad_angle) + 0.5 * h * math.sin(rad_angle) + 0.5 * new_w;
 		num2 = -0.5 * w * math.sin(rad_angle) - 0.5 * h * math.cos(rad_angle) + 0.5 * new_h;
 
-		pixel = self.anchors[anchor_index][0];
-		#print("orogin pixel = %s" % str(pixel));
+		pixel = [0, 0];
+		pixel[0] = self.anchors[anchor_index][0][0];
+		pixel[1] = self.anchors[anchor_index][0][1];
+
+		pixel[0] *= self.cur_scale;
+		pixel[1] *= self.cur_scale;
+		
 		new_pixel = [0, 0];
 		new_pixel[0] = int(pixel[0] * math.cos(rad_angle) - pixel[1] * math.sin(rad_angle) + num1);
 		new_pixel[1] = int(pixel[0] * math.sin(rad_angle) + pixel[1] * math.cos(rad_angle) + num2);
@@ -236,7 +271,6 @@ class WormUnit:
 		self.parent_anchor_index = parent_anchor_index;
 		self.to_parent_anchor_index = anchor_index;
 
-		#self.update_local_angle();
 		parent_anchor_forward = self.parent_worm_unit.get_anchor_forward(self.parent_anchor_index);
 		to_parent_anchor_forward = self.get_anchor_forward(self.to_parent_anchor_index);
 
@@ -284,12 +318,30 @@ class WormUnit:
 	def update_normal_bias(self, left_top_pos):
 		delta_step = self.normal_wave_speed * self.worm.main.delta_time * self.normal_wave_dir;
 		self.cur_normal_bias += delta_step;
-		if self.cur_normal_bias >= self.max_normal_bias or self.cur_normal_bias <= -self.max_normal_bias:
+
+		if self.cur_normal_bias >= self.max_normal_bias:
+			self.normal_wave_dir *= -1;
+			self.cur_normal_bias = self.max_normal_bias;
+		elif self.cur_normal_bias <= -self.max_normal_bias:
+			self.cur_normal_bias = -self.max_normal_bias;
 			self.normal_wave_dir *= -1;
 
+		#if self.unit_layer_cfg_index == 2:
+		#	delta_step = abs(delta_step) * 5.0;
+
+		anchor_index = 0;
 		for anchor_info in self.active_anchors:
-			normal = self.get_rotate_forward(anchor_info[1], delta_step);
-			anchor_info[1] = normal;
+			if anchor_index in self.child_units.keys():
+				#print("anchor_index = %s - update normal" % anchor_index);
+				c = self.child_units[anchor_index];
+				if self.unit_layer_cfg_index == 2 and c.unit_layer_cfg_index == 3:
+					#delta_step = 1.0;
+					pass
+
+				normal = self.get_rotate_forward(anchor_info[1], delta_step);
+				anchor_info[1] = normal;
+
+			anchor_index += 1;
 
 		#print("before local_angle = %s" % self.local_angle);
 		self.__update_local_angle();
@@ -299,7 +351,7 @@ class WormUnit:
 
 		anchor_index = 0;
 		for anchor in self.anchors:
-			rotated_anchor_pos = self.get_anchor_pos_after_rotating(w, h, anchor_index, self.local_angle);
+			rotated_anchor_pos = self.get_anchor_pos_after_rotating(w * self.cur_scale, h * self.cur_scale, anchor_index, self.local_angle);
 			x = left_top_pos[0] + rotated_anchor_pos[0];
 			y = left_top_pos[1] + rotated_anchor_pos[1];
 
@@ -347,20 +399,33 @@ class WormUnit:
 
 		render_pos = (0, 0);
 
+		unit_img = None;
+		if self.parent_worm_unit == None:
+			cur_scale = self.update_unit_scale();
+			new_width = int(self.init_width * cur_scale);
+			new_height = int(self.init_height * cur_scale);
+			unit_img = pygame.transform.scale(self.unit_img, (new_width, new_height));
+		else:
+			unit_img = self.unit_img;
+
+		#w, h = self.unit_img.get_size();
+		w, h = unit_img.get_size();
+
 		if self.parent_worm_unit == None:
 			#print("self.parent_worm_unit == None");
-			w, h = self.unit_img.get_size();
+			#print("mid_pos.x = %s, mid_pos.y = %s" % (self.worm.mid_pos[0], self.worm.mid_pos[1]));
 			render_pos = (self.worm.mid_pos[0] - w / 2, self.worm.mid_pos[1] - h / 2);
 		else:
 			render_pos = self.get_render_pos_by_parent(self.to_parent_anchor_index, self.parent_anchor_index);
 
 		self.update_normal_bias(render_pos);
 
-		unit_img = pygame.transform.rotate(self.unit_img, self.local_angle);
-		
+		#unit_img = pygame.transform.rotate(self.unit_img, self.local_angle);
+		unit_img = pygame.transform.rotate(unit_img, self.local_angle);
+
 		self.worm.main.screen.blit(unit_img, render_pos);
 
-		self.draw_active_anchors();
+		#self.draw_active_anchors();
 
 		for child_unit in self.child_units.values():
 			#print("update child_unit");
@@ -413,7 +478,7 @@ class Worm:
 		return sel_unit;
 
 	def update_max_layer(self, layer_info):
-		layer_cfg_list = self.main.unit_layers["ii"];
+		layer_cfg_list = self.main.unit_layers[self.main.worm_prefix];
 
 		cur_layer_cfg_index = layer_info[3];
 
@@ -453,47 +518,113 @@ class Worm:
 		if worm_unit == None:
 			return;
 
+		cur_anchor_index = worm_unit.random_get_free_anchor_index();
+
 		if worm_unit.parent_worm_unit == None:
-			cur_anchor_index = worm_unit.random_get_free_anchor_index();
-
 			cur_layer_info = self.layer_info[cur_anchor_index];
-			cur_layer_info[0] += 1;
 
-			if cur_layer_info[0] > cur_layer_info[1]:
-				flag = self.update_max_layer(cur_layer_info);
-				if flag == False:
+			#cur_layer_info[0] += 1;
+			print("parent_layer_index = %s, parent_layer_cfg_index = %s" % (worm_unit.unit_layer_index, worm_unit.unit_layer_cfg_index));
+
+			next_layer_index = worm_unit.unit_layer_index + 1;
+			next_layer_cfg_index = worm_unit.unit_layer_cfg_index;
+
+			if next_layer_index > cur_layer_info[1]:
+				layer_cfg_list = self.main.unit_layers[self.main.worm_prefix];
+				next_layer_cfg_index = worm_unit.unit_layer_cfg_index + 1;
+
+				if next_layer_cfg_index >= len(layer_cfg_list):
+					print("pass!");
 					return;
+
+				next_layer_cfg = layer_cfg_list[next_layer_cfg_index];
+				layer_range = next_layer_cfg["range"];
+				min_layer = next_layer_index + layer_range[0];
+				max_layer = next_layer_index + layer_range[1];
+
+				limit_layer = random.randint(min_layer, max_layer);
+				cur_layer_info[1] = limit_layer;
+				cur_layer_info[2] = next_layer_cfg["pattern"];
+
+			#if cur_layer_info[0] > cur_layer_info[1]:
+			#if next_layer_index > cur_layer_info[1];
+			#	flag = self.update_max_layer(next_layer_index, cur_layer_info);
+			#	if flag == False:
+			#		return;
 
 			pattern_key_list = cur_layer_info[2].keys();
 
 			pkl = [];
+
 			for kk in pattern_key_list:
 				pkl.append(kk);
 
 			cur_key = pkl[0];
-			k = "ii_" + cur_key + "_" + str(cur_layer_info[2][cur_key][0]) + ".png";
-			child_worm_unit = WormUnit(self, "units/ii/" + k, k);
+
+			idx = 0;
+
+			k = self.main.worm_prefix + "_" + cur_key + "_" + str(cur_layer_info[2][cur_key][idx]) + ".png";
+
+			child_worm_unit = WormUnit(self, "units/" + self.main.worm_prefix + "/" + k, k);
+
+			child_worm_unit.unit_layer_cfg_index = next_layer_cfg_index;
+			child_worm_unit.unit_layer_index = next_layer_index;
+
+			print("cur_layer_index = %s, cur_layer_cfg_index = %s" % (child_worm_unit.unit_layer_index, child_worm_unit.unit_layer_cfg_index));
+
 			child_worm_unit.attach_to(worm_unit, cur_anchor_index, 0);
 		else:
 			cur_layer_info = self.get_anchor_layer_info(worm_unit);
-			cur_layer_info[0] += 1;
 
-			if cur_layer_info[0] > cur_layer_info[1]:
-				flag = self.update_max_layer(cur_layer_info);
-				if flag == False:
+			#cur_layer_info[0] += 1;
+			print("parent_layer_index = %s, parent_layer_cfg_index = %s" % (worm_unit.unit_layer_index, worm_unit.unit_layer_cfg_index));
+
+			next_layer_index = worm_unit.unit_layer_index + 1;
+			next_layer_cfg_index = worm_unit.unit_layer_cfg_index;
+
+			if next_layer_index > cur_layer_info[1]:
+				layer_cfg_list = self.main.unit_layers[self.main.worm_prefix];
+				next_layer_cfg_index = worm_unit.unit_layer_cfg_index + 1;
+
+				if next_layer_cfg_index >= len(layer_cfg_list):
+					print("pass!");
 					return;
+
+				next_layer_cfg = layer_cfg_list[next_layer_cfg_index];
+				layer_range = next_layer_cfg["range"];
+				min_layer = worm_unit.unit_layer_index + layer_range[0];
+				max_layer = worm_unit.unit_layer_index + layer_range[1];
+
+				limit_layer = random.randint(min_layer, max_layer);
+				cur_layer_info[1] = limit_layer;
+				cur_layer_info[2] = next_layer_cfg["pattern"];
+
+			print("next_layer_index = %s, next_layer_cfg_index = %s" % (next_layer_index, next_layer_cfg_index));
+
+			#if cur_layer_info[0] > cur_layer_info[1]:
+			#	flag = self.update_max_layer(cur_layer_info);
+			#	if flag == False:
+			#		return;
 
 			pattern_key_list = cur_layer_info[2].keys();
 
 			pkl = [];
+
 			for kk in pattern_key_list:
 				pkl.append(kk);
 
 			cur_key = pkl[0];
-			k = "ii_" + cur_key + "_" + str(cur_layer_info[2][cur_key][0]) + ".png";
-			child_worm_unit = WormUnit(self, "units/ii/" + k, k);
 
-			cur_anchor_index = worm_unit.random_get_free_anchor_index();
+			idx = 0;
+
+			k = self.main.worm_prefix + "_" + cur_key + "_" + str(cur_layer_info[2][cur_key][idx]) + ".png";
+
+			child_worm_unit = WormUnit(self, "units/" + self.main.worm_prefix + "/" + k, k);
+
+			child_worm_unit.unit_layer_cfg_index = next_layer_cfg_index;
+			child_worm_unit.unit_layer_index = next_layer_index;
+
+			print("cur_layer_index = %s, cur_layer_cfg_index = %s" % (child_worm_unit.unit_layer_index, child_worm_unit.unit_layer_cfg_index));
 
 			child_worm_unit.attach_to(worm_unit, cur_anchor_index, 0);
 
@@ -536,21 +667,22 @@ class Worm:
 
 class Main:
 	def __init__(self):
-		self.width = 1440;
-		self.height = 960;
+		self.width = 1600;
+		self.height = 1000;
 		self.clock = pygame.time.Clock();
 		self.delta_time = 0.0;
 		with open("config/unit_config.json") as f:
 			self.unit_config = json.load(f);
 		with open("config/unit_layers.json") as ff:
 			self.unit_layers = json.load(ff);
-
+ 
 		self.screen = pygame.display.set_mode((self.width, self.height), 0, 32);
 		pygame.display.set_caption("worm");
 
-		worm_mid_pos = (self.width / 2, self.height / 2 - 200);
-		#self.worm = Worm(self, "units/ii/ii_head_0.png", "ii_head_0.png", worm_mid_pos);
-		self.worm = Worm(self, "units/ii/ii_mm_base_0.png", "ii_mm_base_0.png", worm_mid_pos);
+		worm_mid_pos = (self.width / 2, self.height / 2 - 0);
+
+		self.worm_prefix = "ii";
+		self.worm = Worm(self, "units/" + self.worm_prefix + "/" + self.worm_prefix + "_base_0.png", self.worm_prefix + "_base_0.png", worm_mid_pos);
 
 	def update_input_process(self):
 		for event in pygame.event.get():
@@ -558,6 +690,8 @@ class Main:
 				exit();
 			elif event.type == pygame.KEYDOWN:
 				if event.key == pygame.K_SPACE:
+					#for i in range(0, 1000):
+					#	self.worm.growing();
 					self.worm.growing();
 					#key_box = ["ii_hand_1_base_0.png", "ii_hand_2_base_0.png", "ii_hand_3_base_0.png"];
 					#r = random.randint(0, 2);
@@ -573,7 +707,7 @@ class Main:
 			self.delta_time = self.clock.tick() / 1000.0;
 			#print("frame_time = %s" % str(self.frame_time));
 			self.update_input_process();
-			self.screen.fill((86, 86, 86));
+			self.screen.fill((140, 140, 140));
 
 			self.worm.update();
 
