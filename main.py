@@ -335,8 +335,9 @@ class WormUnit:
 				#print("anchor_index = %s - update normal" % anchor_index);
 				c = self.child_units[anchor_index];
 				if self.unit_layer_cfg_index == 2 and c.unit_layer_cfg_index == 3:
-					#delta_step = 1.0;
-					pass
+					delta_step = 1.0;
+
+					
 
 				normal = self.get_rotate_forward(anchor_info[1], delta_step);
 				anchor_info[1] = normal;
@@ -561,9 +562,10 @@ class Worm:
 
 			cur_key = pkl[0];
 
-			idx = 0;
+			idx_list = cur_layer_info[2][cur_key];
+			idx = random.randint(0, len(idx_list) - 1);
 
-			k = self.main.worm_prefix + "_" + cur_key + "_" + str(cur_layer_info[2][cur_key][idx]) + ".png";
+			k = self.main.worm_prefix + "_" + cur_key + "_" + str(idx_list[idx]) + ".png";
 
 			child_worm_unit = WormUnit(self, "units/" + self.main.worm_prefix + "/" + k, k);
 
@@ -615,9 +617,10 @@ class Worm:
 
 			cur_key = pkl[0];
 
-			idx = 0;
+			idx_list = cur_layer_info[2][cur_key];
+			idx = random.randint(0, len(idx_list) - 1);
 
-			k = self.main.worm_prefix + "_" + cur_key + "_" + str(cur_layer_info[2][cur_key][idx]) + ".png";
+			k = self.main.worm_prefix + "_" + cur_key + "_" + str(idx_list[idx]) + ".png";
 
 			child_worm_unit = WormUnit(self, "units/" + self.main.worm_prefix + "/" + k, k);
 
@@ -681,8 +684,9 @@ class Main:
 
 		worm_mid_pos = (self.width / 2, self.height / 2 - 0);
 
-		self.worm_prefix = "ii";
-		self.worm = Worm(self, "units/" + self.worm_prefix + "/" + self.worm_prefix + "_base_0.png", self.worm_prefix + "_base_0.png", worm_mid_pos);
+		self.worm_prefix = "oo";
+		r = index = random.randint(1, 1);
+		self.worm = Worm(self, "units/" + self.worm_prefix + "/" + self.worm_prefix + "_base_" + str(r) + ".png", self.worm_prefix + "_base_" + str(r) + ".png", worm_mid_pos);
 
 	def update_input_process(self):
 		for event in pygame.event.get():

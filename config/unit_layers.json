@@ -4,27 +4,27 @@
             "range": [0, 0],
             "pattern": 
             {
-                "head": [0]
+                "base": [0, 1, 2, 3]
             }
         },
         {
             "range": [0, 2],
             "pattern": 
             {
-                "hand_1_base": [0]
+                "hand_1_base": [0, 1]
             }
         },
         {
             "range": [0, 2],
             "pattern": 
             {
-                "hand_2_base": [0]
+                "hand_2_base": [0, 1]
             }
         },
         {
             "range": [0, 2],
             "pattern": {
-                "hand_3_base": [0]
+                "hand_3_base": [0, 1]
             }
         }
     ],
@@ -33,27 +33,27 @@
             "range": [0, 0],
             "pattern": 
             {
-                "base": [0]
+                "base": [0, 1, 2, 3]
             }
         },
         {
             "range": [0, 2],
             "pattern": 
             {
-                "hand_1_base": [0]
+                "hand_1_base": [0, 1]
             }
         },
         {
             "range": [0, 3],
             "pattern": 
             {
-                "hand_2_base": [0]
+                "hand_2_base": [0, 1]
             }
         },
         {
             "range": [0, 0],
             "pattern": {
-                "hand_3_base": [0]
+                "hand_3_base": [0, 1]
             }
         }
     ],
@@ -91,27 +91,27 @@
             "range": [0, 0],
             "pattern": 
             {
-                "base": [0]
+                "base": [0, 1, 2, 3]
             }
         },
         {
             "range": [0, 2],
             "pattern": 
             {
-                "hand_1_base": [0]
+                "hand_1_base": [0, 1]
             }
         },
         {
             "range": [0, 0],
             "pattern": 
             { 
-                "hand_2_base": [0]
+                "hand_2_base": [0, 1]
             }
         },
         {
             "range": [0, 0],
             "pattern": {
-                "hand_3_base": [0]
+                "hand_3_base": [0, 1]
             }
         }
     ]
