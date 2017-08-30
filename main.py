@@ -77,30 +77,6 @@ class WormUnit:
 		
 		return render_pos;
 
-	def get_root_to_leaf_connection_list(self):
-		root_to_leaf_connection_list = [];
-		cur_unit = self;
-
-		while cur_unit.parent_worm_unit != None:
-			root_to_leaf_connection_list.append([cur_unit, cur_unit.to_parent_anchor_index]);
-			root_to_leaf_connection_list.append([cur_unit, cur_unit.parent_anchor_index]);
-
-		root_to_leaf_connection_list.reverse();
-
-		return root_to_leaf_connection_list
-
-	def get_root_to_leaf_unit_list(self):
-		root_to_leaf_unit_list = [];
-		cur_unit = self;
-
-		while cur_unit != None:
-			root_to_leaf_unit_list.append(cur_unit);
-			cur_unit = cur_unit.parent_worm_unit;
-
-		root_to_leaf_unit_list.reverse();
-
-		return root_to_leaf_unit_list;
-
 	def vector2_add(self, v1, v2):
 		return [v1[0] + v2[0], v1[1] + v2[1]];		
 
@@ -513,6 +489,49 @@ class Worm:
 		return cur_layer_info;
 
 
+	def __do_growing(self, worm_unit, cur_anchor_index, cur_layer_info):
+		next_layer_index = worm_unit.unit_layer_index + 1;
+		next_layer_cfg_index = worm_unit.unit_layer_cfg_index;
+
+		if next_layer_index > cur_layer_info[1]:
+			layer_cfg_list = self.main.unit_layers[self.main.worm_prefix];
+			next_layer_cfg_index = worm_unit.unit_layer_cfg_index + 1;
+
+			if next_layer_cfg_index >= len(layer_cfg_list):
+				print("pass!");
+				return;
+
+			next_layer_cfg = layer_cfg_list[next_layer_cfg_index];
+			layer_range = next_layer_cfg["range"];
+			min_layer = next_layer_index + layer_range[0];
+			max_layer = next_layer_index + layer_range[1];
+
+			limit_layer = random.randint(min_layer, max_layer);
+			cur_layer_info[1] = limit_layer;
+			cur_layer_info[2] = next_layer_cfg["pattern"];
+
+		pattern_key_list = cur_layer_info[2].keys();
+
+		pkl = [];
+
+		for kk in pattern_key_list:
+			pkl.append(kk);
+
+		cur_key = pkl[0];
+
+		idx_list = cur_layer_info[2][cur_key];
+		idx = random.randint(0, len(idx_list) - 1);
+
+		k = self.main.worm_prefix + "_" + cur_key + "_" + str(idx_list[idx]) + ".png";
+
+		child_worm_unit = WormUnit(self, "units/" + self.main.worm_prefix + "/" + k, k);
+
+		child_worm_unit.unit_layer_cfg_index = next_layer_cfg_index;
+		child_worm_unit.unit_layer_index = next_layer_index;
+
+		child_worm_unit.attach_to(worm_unit, cur_anchor_index, 0);
+
+
 	def growing(self):
 		worm_unit = self.random_get_free_anchors_unit();
 
@@ -523,113 +542,10 @@ class Worm:
 
 		if worm_unit.parent_worm_unit == None:
 			cur_layer_info = self.layer_info[cur_anchor_index];
-
-			#cur_layer_info[0] += 1;
-			print("parent_layer_index = %s, parent_layer_cfg_index = %s" % (worm_unit.unit_layer_index, worm_unit.unit_layer_cfg_index));
-
-			next_layer_index = worm_unit.unit_layer_index + 1;
-			next_layer_cfg_index = worm_unit.unit_layer_cfg_index;
-
-			if next_layer_index > cur_layer_info[1]:
-				layer_cfg_list = self.main.unit_layers[self.main.worm_prefix];
-				next_layer_cfg_index = worm_unit.unit_layer_cfg_index + 1;
-
-				if next_layer_cfg_index >= len(layer_cfg_list):
-					print("pass!");
-					return;
-
-				next_layer_cfg = layer_cfg_list[next_layer_cfg_index];
-				layer_range = next_layer_cfg["range"];
-				min_layer = next_layer_index + layer_range[0];
-				max_layer = next_layer_index + layer_range[1];
-
-				limit_layer = random.randint(min_layer, max_layer);
-				cur_layer_info[1] = limit_layer;
-				cur_layer_info[2] = next_layer_cfg["pattern"];
-
-			#if cur_layer_info[0] > cur_layer_info[1]:
-			#if next_layer_index > cur_layer_info[1];
-			#	flag = self.update_max_layer(next_layer_index, cur_layer_info);
-			#	if flag == False:
-			#		return;
-
-			pattern_key_list = cur_layer_info[2].keys();
-
-			pkl = [];
-
-			for kk in pattern_key_list:
-				pkl.append(kk);
-
-			cur_key = pkl[0];
-
-			idx_list = cur_layer_info[2][cur_key];
-			idx = random.randint(0, len(idx_list) - 1);
-
-			k = self.main.worm_prefix + "_" + cur_key + "_" + str(idx_list[idx]) + ".png";
-
-			child_worm_unit = WormUnit(self, "units/" + self.main.worm_prefix + "/" + k, k);
-
-			child_worm_unit.unit_layer_cfg_index = next_layer_cfg_index;
-			child_worm_unit.unit_layer_index = next_layer_index;
-
-			print("cur_layer_index = %s, cur_layer_cfg_index = %s" % (child_worm_unit.unit_layer_index, child_worm_unit.unit_layer_cfg_index));
-
-			child_worm_unit.attach_to(worm_unit, cur_anchor_index, 0);
+			self.__do_growing(worm_unit, cur_anchor_index, cur_layer_info);
 		else:
 			cur_layer_info = self.get_anchor_layer_info(worm_unit);
-
-			#cur_layer_info[0] += 1;
-			print("parent_layer_index = %s, parent_layer_cfg_index = %s" % (worm_unit.unit_layer_index, worm_unit.unit_layer_cfg_index));
-
-			next_layer_index = worm_unit.unit_layer_index + 1;
-			next_layer_cfg_index = worm_unit.unit_layer_cfg_index;
-
-			if next_layer_index > cur_layer_info[1]:
-				layer_cfg_list = self.main.unit_layers[self.main.worm_prefix];
-				next_layer_cfg_index = worm_unit.unit_layer_cfg_index + 1;
-
-				if next_layer_cfg_index >= len(layer_cfg_list):
-					print("pass!");
-					return;
-
-				next_layer_cfg = layer_cfg_list[next_layer_cfg_index];
-				layer_range = next_layer_cfg["range"];
-				min_layer = worm_unit.unit_layer_index + layer_range[0];
-				max_layer = worm_unit.unit_layer_index + layer_range[1];
-
-				limit_layer = random.randint(min_layer, max_layer);
-				cur_layer_info[1] = limit_layer;
-				cur_layer_info[2] = next_layer_cfg["pattern"];
-
-			print("next_layer_index = %s, next_layer_cfg_index = %s" % (next_layer_index, next_layer_cfg_index));
-
-			#if cur_layer_info[0] > cur_layer_info[1]:
-			#	flag = self.update_max_layer(cur_layer_info);
-			#	if flag == False:
-			#		return;
-
-			pattern_key_list = cur_layer_info[2].keys();
-
-			pkl = [];
-
-			for kk in pattern_key_list:
-				pkl.append(kk);
-
-			cur_key = pkl[0];
-
-			idx_list = cur_layer_info[2][cur_key];
-			idx = random.randint(0, len(idx_list) - 1);
-
-			k = self.main.worm_prefix + "_" + cur_key + "_" + str(idx_list[idx]) + ".png";
-
-			child_worm_unit = WormUnit(self, "units/" + self.main.worm_prefix + "/" + k, k);
-
-			child_worm_unit.unit_layer_cfg_index = next_layer_cfg_index;
-			child_worm_unit.unit_layer_index = next_layer_index;
-
-			print("cur_layer_index = %s, cur_layer_cfg_index = %s" % (child_worm_unit.unit_layer_index, child_worm_unit.unit_layer_cfg_index));
-
-			child_worm_unit.attach_to(worm_unit, cur_anchor_index, 0);
+			self.__do_growing(worm_unit, cur_anchor_index, cur_layer_info);
 
 	def get_free_anchors_unit_count(self):
 		unit_stack = [];
